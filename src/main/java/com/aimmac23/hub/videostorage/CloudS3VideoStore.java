@@ -1,5 +1,6 @@
 package com.aimmac23.hub.videostorage;
 
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
@@ -38,14 +39,27 @@ public class CloudS3VideoStore implements IVideoStore {
 	 * CloudS3VideoStore constructor
 	 */
 	public CloudS3VideoStore() {
-		// Fail early if environment variables have not been defined
-		assertEnvironmentVars();
-
-		// AWS client automatically picks up the env. variables
-		client = AmazonS3ClientBuilder.defaultClient();
-
+		
+		boolean updated = true;
+		
 		bucketName = System.getenv("AWS_BUCKET_NAME");
 		awsRegion = System.getenv("AWS_REGION");
+		
+		if(!updated)	{
+			// Fail early if environment variables have not been defined
+			assertEnvironmentVars();
+	
+			// AWS client automatically picks up the env. variables
+			client = AmazonS3ClientBuilder.defaultClient();			
+		} else	{
+			// Fail early if environment variables have not been defined
+			assertEnvironmentVarsV2();
+	
+			// AWS client automatically picks up the env. variables
+			client = AmazonS3ClientBuilder.standard()
+					.withCredentials(new InstanceProfileCredentialsProvider(false))
+					.build();
+		}
 	}
 
 	@Override
@@ -118,6 +132,13 @@ public class CloudS3VideoStore implements IVideoStore {
 	 */
 	private void assertEnvironmentVars() {
 		assertEnvironmentVars(Arrays.asList("AWS_REGION", "AWS_BUCKET_NAME", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"));
+	}
+	/**
+	 * Checks the environment for a preset list of variables and throws RuntimeException if
+	 * any one of them is not found.
+	 */
+	private void assertEnvironmentVarsV2() {
+		assertEnvironmentVars(Arrays.asList("AWS_REGION", "AWS_BUCKET_NAME"));
 	}
 
 	/**
